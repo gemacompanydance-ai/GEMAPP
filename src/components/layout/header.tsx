@@ -2,20 +2,18 @@
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
 import { useUser } from '@/lib/hooks/use-user'
 import { NeonButton } from '@/components/ui/neon-button'
 import { Avatar } from '@/components/ui/avatar'
 import { ServerStatus } from '@/components/ui/server-status'
-import { LogOut, Upload, Home, User } from 'lucide-react'
+import { LogOut, Upload, Home } from 'lucide-react'
 
 export function Header() {
-  const { user, profile } = useUser()
+  const { user, profile, signOut } = useUser()
   const router = useRouter()
-  const supabase = createClient()
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut()
+    await signOut()
     router.push('/login')
     router.refresh()
   }
@@ -66,18 +64,11 @@ export function Header() {
               </button>
             </>
           ) : (
-            <div className="flex items-center gap-2">
-              <Link href="/login">
-                <NeonButton variant="ghost" size="sm">
-                  Entrar
-                </NeonButton>
-              </Link>
-              <Link href="/register">
-                <NeonButton variant="violet" size="sm">
-                  Unirse
-                </NeonButton>
-              </Link>
-            </div>
+            <Link href="/login">
+              <NeonButton variant="violet" size="sm">
+                Entrar
+              </NeonButton>
+            </Link>
           )}
         </div>
       </div>

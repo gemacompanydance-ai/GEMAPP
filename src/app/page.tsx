@@ -1,14 +1,11 @@
 import Link from 'next/link'
 import { NeonButton } from '@/components/ui/neon-button'
 import { GlassCard } from '@/components/ui/glass-card'
-import { createClient } from '@/lib/supabase/server'
+import { getSession } from '@/lib/auth/session'
 import { redirect } from 'next/navigation'
 
 export default async function LandingPage() {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await getSession()
 
   if (user) {
     redirect('/feed')
@@ -39,14 +36,9 @@ export default async function LandingPage() {
         </div>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-          <Link href="/register">
-            <NeonButton variant="pink" size="lg">
-              🌟 Unirme a la academia
-            </NeonButton>
-          </Link>
           <Link href="/login">
-            <NeonButton variant="ghost" size="lg">
-              Ya tengo cuenta →
+            <NeonButton variant="pink" size="lg">
+              🌟 Entrar a la academia
             </NeonButton>
           </Link>
         </div>

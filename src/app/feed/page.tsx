@@ -1,15 +1,12 @@
 import { VideoFeed } from '@/components/video/video-feed'
 import { getCurrentWeek, formatWeekLabel } from '@/lib/utils/week-utils'
-import { createClient } from '@/lib/supabase/server'
+import { getSession } from '@/lib/auth/session'
 import { redirect } from 'next/navigation'
 
 export const dynamic = 'force-dynamic'
 
 export default async function FeedPage() {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await getSession()
 
   if (!user) {
     redirect('/login')

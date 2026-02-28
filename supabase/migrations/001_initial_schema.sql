@@ -1,10 +1,10 @@
 -- ============================================
--- GemaSocial - Initial Schema
+-- GemaSocial - Initial Schema (Hardcoded Users)
 -- ============================================
 
--- Profiles table (extends auth.users)
+-- Profiles table (independent, not linked to auth.users)
 CREATE TABLE IF NOT EXISTS public.profiles (
-  id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
+  id TEXT PRIMARY KEY,
   username TEXT UNIQUE NOT NULL,
   full_name TEXT,
   avatar_url TEXT,
@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
 -- Videos table
 CREATE TABLE IF NOT EXISTS public.videos (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+  user_id TEXT REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
   title TEXT NOT NULL CHECK (char_length(title) BETWEEN 1 AND 100),
   description TEXT CHECK (char_length(description) <= 500),
   video_url TEXT NOT NULL,
@@ -29,7 +29,7 @@ CREATE TABLE IF NOT EXISTS public.videos (
 CREATE TABLE IF NOT EXISTS public.comments (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   video_id UUID REFERENCES public.videos(id) ON DELETE CASCADE NOT NULL,
-  user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+  user_id TEXT REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
   content TEXT NOT NULL CHECK (char_length(content) BETWEEN 1 AND 500),
   emojis TEXT[] DEFAULT '{}',
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -39,7 +39,7 @@ CREATE TABLE IF NOT EXISTS public.comments (
 CREATE TABLE IF NOT EXISTS public.reactions (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   video_id UUID REFERENCES public.videos(id) ON DELETE CASCADE NOT NULL,
-  user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+  user_id TEXT REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
   reaction_type TEXT NOT NULL CHECK (reaction_type IN ('fire', 'heart', 'star', 'clap', 'muscle', 'sparkles', 'rainbow', 'butterfly')),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   CONSTRAINT unique_reaction UNIQUE (video_id, user_id, reaction_type)
@@ -67,71 +67,44 @@ ALTER TABLE public.reactions ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Profiles are viewable by everyone"
   ON public.profiles FOR SELECT USING (true);
 
-CREATE POLICY "Users can insert their own profile"
-  ON public.profiles FOR INSERT WITH CHECK (auth.uid() = id);
+CREATE POLICY "Profiles can be inserted"
+  ON public.profiles FOR INSERT WITH CHECK (true);
 
-CREATE POLICY "Users can update their own profile"
-  ON public.profiles FOR UPDATE USING (auth.uid() = id);
+CREATE POLICY "Profiles can be updated"
+  ON public.profiles FOR UPDATE USING (true);
 
 -- Videos policies
-CREATE POLICY "Videos are viewable by authenticated users"
-  ON public.videos FOR SELECT TO authenticated USING (true);
+CREATE POLICY "Videos are viewable by everyone"
+  ON public.videos FOR SELECT USING (true);
 
-CREATE POLICY "Users can insert their own videos"
-  ON public.videos FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Videos can be inserted by anyone"
+  ON public.videos FOR INSERT WITH CHECK (true);
 
-CREATE POLICY "Users can update their own videos"
-  ON public.videos FOR UPDATE TO authenticated USING (auth.uid() = user_id);
+CREATE POLICY "Videos can be updated by anyone"
+  ON public.videos FOR UPDATE USING (true);
 
-CREATE POLICY "Users can delete their own videos"
-  ON public.videos FOR DELETE TO authenticated USING (auth.uid() = user_id);
+CREATE POLICY "Videos can be deleted by anyone"
+  ON public.videos FOR DELETE USING (true);
 
 -- Comments policies
-CREATE POLICY "Comments are viewable by authenticated users"
-  ON public.comments FOR SELECT TO authenticated USING (true);
+CREATE POLICY "Comments are viewable by everyone"
+  ON public.comments FOR SELECT USING (true);
 
-CREATE POLICY "Authenticated users can insert comments"
-  ON public.comments FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Comments can be inserted by anyone"
+  ON public.comments FOR INSERT WITH CHECK (true);
 
-CREATE POLICY "Users can delete their own comments"
-  ON public.comments FOR DELETE TO authenticated USING (auth.uid() = user_id);
+CREATE POLICY "Comments can be deleted by anyone"
+  ON public.comments FOR DELETE USING (true);
 
 -- Reactions policies
-CREATE POLICY "Reactions are viewable by authenticated users"
-  ON public.reactions FOR SELECT TO authenticated USING (true);
+CREATE POLICY "Reactions are viewable by everyone"
+  ON public.reactions FOR SELECT USING (true);
 
-CREATE POLICY "Authenticated users can insert reactions"
-  ON public.reactions FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Reactions can be inserted by anyone"
+  ON public.reactions FOR INSERT WITH CHECK (true);
 
-CREATE POLICY "Users can delete their own reactions"
-  ON public.reactions FOR DELETE TO authenticated USING (auth.uid() = user_id);
-
--- ============================================
--- Functions & Triggers
--- ============================================
-
--- Auto-create profile on signup
-CREATE OR REPLACE FUNCTION public.handle_new_user()
-RETURNS TRIGGER
-LANGUAGE plpgsql
-SECURITY DEFINER SET search_path = public
-AS $$
-BEGIN
-  INSERT INTO public.profiles (id, username, full_name, role)
-  VALUES (
-    NEW.id,
-    COALESCE(NEW.raw_user_meta_data->>'username', 'user_' || left(NEW.id::text, 8)),
-    COALESCE(NEW.raw_user_meta_data->>'full_name', NULL),
-    'alumno'
-  )
-  ON CONFLICT (id) DO NOTHING;
-  RETURN NEW;
-END;
-$$;
-
-CREATE OR REPLACE TRIGGER on_auth_user_created
-  AFTER INSERT ON auth.users
-  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+CREATE POLICY "Reactions can be deleted by anyone"
+  ON public.reactions FOR DELETE USING (true);
 
 -- ============================================
 -- Realtime

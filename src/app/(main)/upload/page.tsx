@@ -1,12 +1,9 @@
-import { createClient } from '@/lib/supabase/server'
+import { getSession } from '@/lib/auth/session'
 import { redirect } from 'next/navigation'
 import { VideoUpload } from '@/components/video/video-upload'
 
 export default async function UploadPage() {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await getSession()
 
   if (!user) {
     redirect('/login')

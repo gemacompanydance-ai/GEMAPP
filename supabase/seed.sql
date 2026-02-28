@@ -1,20 +1,16 @@
--- Seed data for development (optional)
+-- Seed data for GemaSocial (Hardcoded Users)
 -- Run this in Supabase SQL Editor after initial schema
 
--- Note: Real user creation requires going through auth.users
--- This seed is just for reference/testing with existing auth users
-
--- Example profiles (replace UUIDs with real auth user IDs):
-/*
+-- Insert hardcoded users
 INSERT INTO public.profiles (id, username, full_name, role) VALUES
-  ('00000000-0000-0000-0000-000000000001', 'gema_profesora', 'Gema García', 'profesor'),
-  ('00000000-0000-0000-0000-000000000002', 'maria_bailarina', 'María López', 'alumno'),
-  ('00000000-0000-0000-0000-000000000003', 'sofia_dance', 'Sofía Martín', 'alumno');
-*/
+  ('user-001', 'gema', 'Gema García', 'profesor'),
+  ('user-002', 'maria', 'María López', 'alumno'),
+  ('user-003', 'sofia', 'Sofía Martín', 'alumno'),
+  ('user-004', 'laura', 'Laura Fernández', 'alumno'),
+  ('user-005', 'carmen', 'Carmen Ruiz', 'admin')
+ON CONFLICT (id) DO NOTHING;
 
--- Example videos (replace user_id and video_url):
-/*
-INSERT INTO public.videos (user_id, title, description, video_url, week_number) VALUES
-  ('00000000-0000-0000-0000-000000000002', 'Mi primera coreografía', '¡Semana 1 completada!', 'https://example.ngrok.io/videos/sample.mp4', 1),
-  ('00000000-0000-0000-0000-000000000003', 'Coreografía Hip Hop', 'Trabajando el flow', 'https://example.ngrok.io/videos/sample2.mp4', 1);
-*/
+-- Example videos (optional, for testing)
+-- INSERT INTO public.videos (user_id, title, description, video_url, week_number) VALUES
+--   ('user-002', 'Mi primera coreografía', '¡Semana 1 completada!', 'https://example.ngrok.io/videos/sample.mp4', 1),
+--   ('user-003', 'Coreografía Hip Hop', 'Trabajando el flow', 'https://example.ngrok.io/videos/sample2.mp4', 1);

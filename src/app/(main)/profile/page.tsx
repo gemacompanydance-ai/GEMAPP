@@ -1,27 +1,21 @@
-import { createClient } from '@/lib/supabase/server'
+import { getSession, getProfile } from '@/lib/auth/session'
 import { redirect } from 'next/navigation'
 import { GlassCard } from '@/components/ui/glass-card'
 import { Avatar } from '@/components/ui/avatar'
 import { VideoCard } from '@/components/video/video-card'
-import { formatWeekLabel } from '@/lib/utils/week-utils'
+import { createClient } from '@/lib/supabase/server'
 
 export const dynamic = 'force-dynamic'
 
 export default async function ProfilePage() {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await getSession()
 
   if (!user) {
     redirect('/login')
   }
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', user.id)
-    .single()
+  const profile = await getProfile()
+  const supabase = await createClient()
 
   const { data: videos } = await supabase
     .from('videos')

@@ -15,7 +15,7 @@ const ALLOWED_TYPES = ['video/mp4', 'video/webm', 'video/quicktime', 'video/x-ms
 
 export function VideoUpload() {
   const router = useRouter()
-  const { user, profile } = useUser()
+  const { user } = useUser()
   const supabase = createClient()
   const fileInputRef = useRef<HTMLInputElement>(null)
 
