@@ -2,14 +2,13 @@
 
 import { useState, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { createClient } from '@/lib/supabase/client'
 import { useUser } from '@/lib/hooks/use-user'
 import { Avatar } from '@/components/ui/avatar'
 import { NeonButton } from '@/components/ui/neon-button'
 import type { Comment } from '@/types/database'
 import { formatDistanceToNow } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { Send, SmilePlus } from 'lucide-react'
+import { Send, SmilePlus, Trash2 } from 'lucide-react'
 
 const QUICK_EMOJIS = ['💜', '🔥', '✨', '👏', '💪', '🌈', '🦋', '⭐', '🎉', '😍', '🤩', '❤️']
 
@@ -21,12 +20,14 @@ interface CommentSectionProps {
 
 export function CommentSection({ videoId, comments, onUpdate }: CommentSectionProps) {
   const { user, profile } = useUser()
-  const supabase = createClient()
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   const [content, setContent] = useState('')
   const [showEmojis, setShowEmojis] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+
+  const isAdmin = user?.role === 'admin'
 
   const insertEmoji = (emoji: string) => {
     setContent((prev) => prev + emoji)
@@ -42,18 +43,37 @@ export function CommentSection({ videoId, comments, onUpdate }: CommentSectionPr
         /[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/gu
       )
 
-      await supabase.from('comments').insert({
-        video_id: videoId,
-        user_id: user.id,
-        content: content.trim(),
-        emojis: emojiMatches || [],
+      const res = await fetch('/api/comments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          videoId,
+          content: content.trim(),
+          emojis: emojiMatches || [],
+        }),
       })
 
-      setContent('')
-      setShowEmojis(false)
-      onUpdate?.()
+      if (res.ok) {
+        setContent('')
+        setShowEmojis(false)
+        onUpdate?.()
+      }
     } finally {
       setSubmitting(false)
+    }
+  }
+
+  const handleDelete = async (commentId: string) => {
+    if (!confirm('¿Eliminar este comentario?')) return
+    setDeletingId(commentId)
+
+    try {
+      const res = await fetch(`/api/comments/${commentId}`, { method: 'DELETE' })
+      if (res.ok) {
+        onUpdate?.()
+      }
+    } finally {
+      setDeletingId(null)
     }
   }
 
@@ -161,40 +181,60 @@ export function CommentSection({ videoId, comments, onUpdate }: CommentSectionPr
               Sé la primera en comentar ✨
             </p>
           ) : (
-            sortedComments.map((comment, i) => (
-              <motion.div
-                key={comment.id}
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: i * 0.03 }}
-                className="flex gap-3"
-              >
-                <Avatar
-                  src={comment.profiles?.avatar_url}
-                  alt={comment.profiles?.username || 'Usuario'}
-                  size="sm"
-                  className="flex-shrink-0 mt-0.5"
-                />
-                <div className="flex-1 min-w-0">
-                  <div className="bg-white/5 border border-white/10 rounded-xl px-4 py-3">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-pink-300 text-sm font-semibold">
-                        {comment.profiles?.username || 'Alumna'}
-                      </span>
-                      <span className="text-white/30 text-xs">
-                        {formatDistanceToNow(new Date(comment.created_at), {
-                          addSuffix: true,
-                          locale: es,
-                        })}
-                      </span>
+            sortedComments.map((comment, i) => {
+              const canDelete = isAdmin || user?.id === comment.user_id
+              return (
+                <motion.div
+                  key={comment.id}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -10 }}
+                  transition={{ delay: i * 0.03 }}
+                  className="flex gap-3"
+                >
+                  <Avatar
+                    src={comment.profiles?.avatar_url}
+                    alt={comment.profiles?.username || 'Usuario'}
+                    size="sm"
+                    className="flex-shrink-0 mt-0.5"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="bg-white/5 border border-white/10 rounded-xl px-4 py-3">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-pink-300 text-sm font-semibold">
+                          {comment.profiles?.username || 'Alumna'}
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-white/30 text-xs">
+                            {formatDistanceToNow(new Date(comment.created_at), {
+                              addSuffix: true,
+                              locale: es,
+                            })}
+                          </span>
+                          {canDelete && (
+                            <button
+                              onClick={() => handleDelete(comment.id)}
+                              disabled={deletingId === comment.id}
+                              className={`transition-colors ${
+                                isAdmin && user?.id !== comment.user_id
+                                  ? 'text-red-500/60 hover:text-red-400'
+                                  : 'text-white/20 hover:text-red-400'
+                              } disabled:opacity-40`}
+                              title={isAdmin && user?.id !== comment.user_id ? 'Eliminar (admin)' : 'Eliminar comentario'}
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                      <p className="text-white/80 text-sm leading-relaxed break-words">
+                        {comment.content}
+                      </p>
                     </div>
-                    <p className="text-white/80 text-sm leading-relaxed break-words">
-                      {comment.content}
-                    </p>
                   </div>
-                </div>
-              </motion.div>
-            ))
+                </motion.div>
+              )
+            })
           )}
         </AnimatePresence>
       </div>

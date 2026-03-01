@@ -2,16 +2,14 @@
 
 import { useState } from 'react'
 import { useVideos } from '@/lib/hooks/use-videos'
-import { VideoCard } from './video-card'
+import { TwitterFeedCard } from './twitter-feed-card'
 import { getCurrentWeek, formatWeekLabel } from '@/lib/utils/week-utils'
 import { NeonButton } from '@/components/ui/neon-button'
 import { Loader2 } from 'lucide-react'
 
 export function VideoFeed() {
   const currentWeek = getCurrentWeek()
-  const [selectedWeek, setSelectedWeek] = useState<number | undefined>(
-    undefined
-  )
+  const [selectedWeek, setSelectedWeek] = useState<number | undefined>(undefined)
   const { videos, loading, error } = useVideos(selectedWeek)
 
   const weekOptions = Array.from({ length: currentWeek }, (_, i) => currentWeek - i)
@@ -72,9 +70,9 @@ export function VideoFeed() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="max-w-2xl mx-auto space-y-4">
         {videos.map((video, index) => (
-          <VideoCard key={video.id} video={video} index={index} />
+          <TwitterFeedCard key={video.id} video={video} index={index} />
         ))}
       </div>
     </div>

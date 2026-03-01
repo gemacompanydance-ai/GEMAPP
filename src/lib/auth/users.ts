@@ -13,10 +13,10 @@ export const HARDCODED_USERS: HardcodedUser[] = [
   {
     id: 'user-001',
     username: 'gema',
-    password: 'gema123',
+    password: 'GEMAADMIN2003',
     full_name: 'Gema García',
     avatar_url: null,
-    role: 'profesor',
+    role: 'admin',
   },
   {
     id: 'user-002',

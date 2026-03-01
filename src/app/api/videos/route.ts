@@ -14,7 +14,7 @@ export async function GET(request: Request) {
       *,
       profiles (id, username, avatar_url, full_name),
       reactions (id, reaction_type, user_id),
-      comments (id)
+      comments (id, content, created_at, user_id, profiles(username, avatar_url))
     `
     )
     .order('created_at', { ascending: false })

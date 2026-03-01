@@ -1,9 +1,10 @@
-import { getSession, getProfile } from '@/lib/auth/session'
+import { getSession } from '@/lib/auth/session'
 import { redirect } from 'next/navigation'
 import { GlassCard } from '@/components/ui/glass-card'
-import { Avatar } from '@/components/ui/avatar'
 import { VideoCard } from '@/components/video/video-card'
 import { createClient } from '@/lib/supabase/server'
+import { ProfileClient } from './profile-client'
+import type { Profile, UserRole } from '@/types/database'
 
 export const dynamic = 'force-dynamic'
 
@@ -14,8 +15,13 @@ export default async function ProfilePage() {
     redirect('/login')
   }
 
-  const profile = await getProfile()
   const supabase = await createClient()
+
+  const { data: profileData } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', user.id)
+    .single()
 
   const { data: videos } = await supabase
     .from('videos')
@@ -35,41 +41,28 @@ export default async function ProfilePage() {
     .select('reaction_type, videos!inner(user_id)')
     .eq('videos.user_id', user.id)
 
+  const { data: myComments } = await supabase
+    .from('comments')
+    .select('id, content, created_at, video_id, videos(id, title)')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false })
+
+  const profile: Profile = profileData || {
+    id: user.id,
+    username: user.username,
+    full_name: user.full_name,
+    avatar_url: user.avatar_url,
+    role: user.role as UserRole,
+    created_at: new Date().toISOString(),
+  }
+
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 space-y-8">
-      <GlassCard glow="pink" className="p-6">
-        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
-          <Avatar
-            src={profile?.avatar_url}
-            alt={profile?.username || profile?.full_name || 'Alumna'}
-            size="xl"
-          />
-          <div className="text-center sm:text-left space-y-2">
-            <h1 className="text-2xl font-black text-white">
-              {profile?.full_name || 'Alumna'}
-            </h1>
-            <p className="text-pink-400 font-medium">@{profile?.username}</p>
-            <div className="flex items-center justify-center sm:justify-start gap-2">
-              <span className="bg-violet-500/20 border border-violet-500/30 text-violet-300 text-xs px-2.5 py-1 rounded-full capitalize">
-                {profile?.role || 'alumno'}
-              </span>
-            </div>
-          </div>
-
-          <div className="sm:ml-auto flex gap-6 text-center">
-            <div>
-              <div className="text-2xl font-black text-white">{videos?.length || 0}</div>
-              <div className="text-white/40 text-xs">Videos</div>
-            </div>
-            <div>
-              <div className="text-2xl font-black text-white">
-                {reactionsReceived?.length || 0}
-              </div>
-              <div className="text-white/40 text-xs">Reacciones</div>
-            </div>
-          </div>
-        </div>
-      </GlassCard>
+      <ProfileClient
+        profile={profile}
+        videoCount={videos?.length || 0}
+        reactionCount={reactionsReceived?.length || 0}
+      />
 
       <div>
         <h2 className="text-xl font-black text-white mb-4">🎬 Mis Coreografías</h2>
@@ -87,6 +80,42 @@ export default async function ProfilePage() {
             {videos.map((video, i) => (
               <VideoCard key={video.id} video={video} index={i} />
             ))}
+          </div>
+        )}
+      </div>
+
+      <div>
+        <h2 className="text-xl font-black text-white mb-4">💬 Mis Comentarios</h2>
+
+        {!myComments || myComments.length === 0 ? (
+          <GlassCard className="p-8 text-center space-y-2">
+            <p className="text-3xl">💬</p>
+            <p className="text-white/50">Aún no has comentado en ningún video</p>
+          </GlassCard>
+        ) : (
+          <div className="space-y-3">
+            {myComments.map((comment) => {
+              const videoData = comment.videos as { id: string; title: string } | null
+              return (
+                <GlassCard key={comment.id} glow="cyan" className="p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-white/80 text-sm leading-relaxed break-words">
+                        {comment.content}
+                      </p>
+                      {videoData && (
+                        <a
+                          href={`/video/${videoData.id}`}
+                          className="text-pink-400 text-xs hover:text-pink-300 transition-colors mt-1.5 block"
+                        >
+                          En: {videoData.title} →
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                </GlassCard>
+              )
+            })}
           </div>
         )}
       </div>

@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { getSession } from '@/lib/auth/session'
 import { notFound } from 'next/navigation'
 import { GlassCard } from '@/components/ui/glass-card'
 import { Avatar } from '@/components/ui/avatar'
@@ -7,6 +8,7 @@ import { ReactionBar } from '@/components/social/reaction-bar'
 import { CommentSection } from '@/components/social/comment-section'
 import { formatWeekLabel } from '@/lib/utils/week-utils'
 import { VideoInteractions } from '@/components/video/video-interactions'
+import { VideoPageActions } from '@/components/video/video-page-actions'
 import { formatDistanceToNow } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { Calendar } from 'lucide-react'
@@ -38,6 +40,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 export default async function VideoPage({ params }: PageProps) {
   const { id } = await params
   const supabase = await createClient()
+  const session = await getSession()
 
   const { data: video } = await supabase
     .from('videos')
@@ -54,6 +57,8 @@ export default async function VideoPage({ params }: PageProps) {
 
   if (!video) notFound()
 
+  const canDelete = session?.role === 'admin' || session?.id === video.user_id
+
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -61,19 +66,24 @@ export default async function VideoPage({ params }: PageProps) {
           <VideoPlayer url={video.video_url} title={video.title} />
 
           <GlassCard glow="violet" className="p-5 space-y-4">
-            <div className="space-y-1">
-              <h1 className="text-xl font-black text-white">{video.title}</h1>
-              <div className="flex items-center gap-1.5 text-white/40 text-xs">
-                <Calendar size={12} />
-                <span>{formatWeekLabel(video.week_number)}</span>
-                <span>·</span>
-                <span>
-                  {formatDistanceToNow(new Date(video.created_at), {
-                    addSuffix: true,
-                    locale: es,
-                  })}
-                </span>
+            <div className="flex items-start justify-between gap-3">
+              <div className="space-y-1 flex-1">
+                <h1 className="text-xl font-black text-white">{video.title}</h1>
+                <div className="flex items-center gap-1.5 text-white/40 text-xs">
+                  <Calendar size={12} />
+                  <span>{formatWeekLabel(video.week_number)}</span>
+                  <span>·</span>
+                  <span>
+                    {formatDistanceToNow(new Date(video.created_at), {
+                      addSuffix: true,
+                      locale: es,
+                    })}
+                  </span>
+                </div>
               </div>
+              {canDelete && (
+                <VideoPageActions videoId={video.id} />
+              )}
             </div>
 
             <div className="flex items-center gap-3">
