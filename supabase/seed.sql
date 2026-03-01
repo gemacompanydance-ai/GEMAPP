@@ -3,7 +3,7 @@
 
 -- Insert hardcoded users
 INSERT INTO public.profiles (id, username, full_name, role) VALUES
-  ('user-001', 'gema', 'Gema García', 'profesor'),
+  ('user-001', 'gema', 'Gema García', 'admin'),
   ('user-002', 'maria', 'María López', 'alumno'),
   ('user-003', 'sofia', 'Sofía Martín', 'alumno'),
   ('user-004', 'laura', 'Laura Fernández', 'alumno'),

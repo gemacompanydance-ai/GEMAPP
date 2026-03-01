@@ -6,10 +6,11 @@ import { GlassCard } from '@/components/ui/glass-card'
 import { Avatar } from '@/components/ui/avatar'
 import { REACTIONS } from '@/types/database'
 import type { Video } from '@/types/database'
-import { formatWeekLabel } from '@/lib/utils/week-utils'
-import { MessageCircle, Calendar } from 'lucide-react'
+import { MessageCircle, Calendar, Trash2 } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { es } from 'date-fns/locale'
+import { useUser } from '@/lib/hooks/use-user'
+import { useRouter } from 'next/navigation'
 
 interface VideoCardProps {
   video: Video
@@ -17,6 +18,13 @@ interface VideoCardProps {
 }
 
 export function VideoCard({ video, index = 0 }: VideoCardProps) {
+  const { user } = useUser()
+  const router = useRouter()
+
+  const isAdmin = user?.role === 'admin'
+  const isOwner = user?.id === video.user_id
+  const canDelete = isAdmin || isOwner
+
   const reactionCounts = (video.reactions || []).reduce(
     (acc, r) => {
       acc[r.reaction_type] = (acc[r.reaction_type] || 0) + 1
@@ -34,6 +42,17 @@ export function VideoCard({ video, index = 0 }: VideoCardProps) {
     0
   )
   const commentCount = (video.comments || []).length
+
+  const handleDelete = async (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (!confirm('¿Eliminar este video y todos sus comentarios?')) return
+
+    const res = await fetch(`/api/videos/${video.id}`, { method: 'DELETE' })
+    if (res.ok) {
+      router.refresh()
+    }
+  }
 
   return (
     <motion.div
@@ -66,6 +85,15 @@ export function VideoCard({ video, index = 0 }: VideoCardProps) {
             <div className="absolute top-2 right-2 bg-black/60 backdrop-blur-sm rounded-full px-2 py-0.5 text-xs text-pink-300 font-medium border border-pink-500/30">
               Sem. {video.week_number}
             </div>
+            {canDelete && (
+              <button
+                onClick={handleDelete}
+                className="absolute top-2 left-2 p-1.5 rounded-full bg-black/60 backdrop-blur-sm border border-red-500/30 text-red-400/70 hover:text-red-400 hover:bg-red-500/20 transition-all opacity-0 group-hover:opacity-100"
+                title="Eliminar video"
+              >
+                <Trash2 size={13} />
+              </button>
+            )}
           </div>
 
           <div className="p-4">

@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { getUserById, toProfile } from '@/lib/auth/users'
+import { createClient } from '@/lib/supabase/client'
 import type { Profile } from '@/types/database'
 import type { ClientUser } from '@/lib/auth/client'
 
@@ -18,9 +18,23 @@ export function useUser() {
 
         if (data.user) {
           setUser(data.user)
-          const fullUser = getUserById(data.user.id)
-          if (fullUser) {
-            setProfile(toProfile(fullUser))
+          const supabase = createClient()
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', data.user.id)
+            .single()
+          if (profileData) {
+            setProfile(profileData as Profile)
+          } else {
+            setProfile({
+              id: data.user.id,
+              username: data.user.username,
+              full_name: data.user.full_name,
+              avatar_url: data.user.avatar_url,
+              role: data.user.role,
+              created_at: new Date().toISOString(),
+            } as Profile)
           }
         }
       } catch {
@@ -39,5 +53,18 @@ export function useUser() {
     setProfile(null)
   }
 
-  return { user, profile, loading, signOut }
+  const refreshProfile = async () => {
+    if (!user) return
+    const supabase = createClient()
+    const { data: profileData } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', user.id)
+      .single()
+    if (profileData) {
+      setProfile(profileData as Profile)
+    }
+  }
+
+  return { user, profile, loading, signOut, refreshProfile }
 }
