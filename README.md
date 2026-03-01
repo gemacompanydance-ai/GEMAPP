@@ -8,7 +8,7 @@
 ┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
 │   VERCEL        │     │   SUPABASE      │     │   PC LOCAL      │
 │   Next.js 16    │────▶│   PostgreSQL    │     │   Express.js    │
-│   App Router    │     │   Auth          │     │   + Ngrok       │
+│   App Router    │     │   (Database)    │     │   + Ngrok       │
 │   Tailwind v4   │◀────│   Realtime      │◀────│   Videos        │
 └─────────────────┘     └─────────────────┘     └─────────────────┘
 ```
@@ -17,7 +17,8 @@
 
 - **Frontend**: Next.js 16, TypeScript, Tailwind CSS v4
 - **Animaciones**: Framer Motion
-- **Base de datos**: Supabase (PostgreSQL + Auth + Realtime)
+- **Base de datos**: Supabase (PostgreSQL + Realtime)
+- **Autenticación**: Usuarios hardcodeados (sin registro)
 - **Video Server**: Express.js (PC local) + Ngrok
 - **Deploy**: Vercel
 
@@ -35,11 +36,26 @@ cp .env.example .env.local
 npm run dev
 ```
 
+## 🔐 Usuarios Hardcodeados
+
+El sistema usa usuarios predefinidos en lugar de Supabase Auth. No hay registro, solo login.
+
+| Usuario  | Contraseña | Rol       |
+|----------|------------|-----------|
+| gema     | gema123    | profesor  |
+| maria    | maria123   | alumno    |
+| sofia    | sofia123   | alumno    |
+| laura    | laura123   | alumno    |
+| carmen   | carmen123  | admin     |
+
+Para añadir más usuarios, edita `src/lib/auth/users.ts`.
+
 ## 🗄️ Setup Supabase
 
 1. Crea un proyecto en [supabase.com](https://supabase.com)
 2. Ve a **SQL Editor** y ejecuta `supabase/migrations/001_initial_schema.sql`
-3. Copia tus credenciales a `.env.local`
+3. Ejecuta `supabase/seed.sql` para insertar los usuarios hardcodeados
+4. Copia tus credenciales a `.env.local`
 
 ## 🎬 Setup Video Server (PC Local)
 
@@ -73,13 +89,12 @@ Variables de entorno necesarias en Vercel:
 ```
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
-SUPABASE_SERVICE_ROLE_KEY=
 NEXT_PUBLIC_VIDEO_SERVER_URL=
 ```
 
 ## ✨ Funcionalidades
 
-- 🔐 **Auth**: Registro e inicio de sesión con Supabase Auth
+- 🔐 **Auth**: Login con usuarios hardcodeados (sin registro)
 - 📹 **Videos**: Subida de coreografías semanales (1 por semana por alumna)
 - 🔥 **Reacciones**: 8 reacciones emoji motivacionales con animaciones
 - 💬 **Comentarios**: Comentarios en tiempo real con emoji picker
@@ -92,7 +107,7 @@ NEXT_PUBLIC_VIDEO_SERVER_URL=
 ```
 src/
 ├── app/
-│   ├── (auth)/login|register    # Páginas de autenticación
+│   ├── (auth)/login             # Página de login
 │   ├── (main)/upload|profile    # Subir videos, perfil
 │   ├── (main)/video/[id]        # Vista individual de video
 │   ├── feed/                    # Feed principal
@@ -103,7 +118,8 @@ src/
 │   ├── video/       # VideoCard, VideoFeed, VideoUpload, VideoPlayer
 │   └── social/      # ReactionBar, CommentSection
 ├── lib/
-│   ├── supabase/    # Cliente browser/server, middleware
+│   ├── auth/        # Sistema de autenticación (usuarios hardcodeados)
+│   ├── supabase/    # Cliente browser/server (solo database)
 │   ├── hooks/       # useUser, useVideos
 │   └── utils/       # cn(), week-utils
 └── types/
