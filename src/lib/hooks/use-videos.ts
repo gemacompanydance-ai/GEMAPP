@@ -1,20 +1,35 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import type { Video } from '@/types/database'
 
-export function useVideos(weekNumber?: number) {
+// Get date 7 days ago
+function getSevenDaysAgo(): string {
+  const date = new Date()
+  date.setDate(date.getDate() - 7)
+  date.setHours(0, 0, 0, 0)
+  return date.toISOString()
+}
+
+export function useVideos() {
   const [videos, setVideos] = useState<Video[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [hasMore, setHasMore] = useState(true)
+  const [page, setPage] = useState(0)
   const supabase = createClient()
+  const PAGE_SIZE = 10
 
-  const fetchVideos = useCallback(async () => {
-    setLoading(true)
+  const fetchVideos = useCallback(async (pageNum = 0, append = false) => {
+    if (pageNum === 0) {
+      setLoading(true)
+    }
     setError(null)
 
-    let query = supabase
+    const sevenDaysAgo = getSevenDaysAgo()
+
+    const { data, error } = await supabase
       .from('videos')
       .select(
         `
@@ -24,28 +39,49 @@ export function useVideos(weekNumber?: number) {
         comments (id, content, created_at, user_id, profiles(username, avatar_url))
       `
       )
+      .gte('created_at', sevenDaysAgo)
       .order('created_at', { ascending: false })
-
-    if (weekNumber) {
-      query = query.eq('week_number', weekNumber)
-    }
-
-    const { data, error } = await query
+      .range(pageNum * PAGE_SIZE, (pageNum + 1) * PAGE_SIZE - 1)
 
     if (error) {
       setError(error.message)
     } else {
-      setVideos(data || [])
+      const newVideos = data || []
+      if (append) {
+        setVideos(prev => [...prev, ...newVideos])
+      } else {
+        setVideos(newVideos)
+      }
+      setHasMore(newVideos.length === PAGE_SIZE)
     }
 
     setLoading(false)
-  }, [supabase, weekNumber])
+  }, [supabase])
+
+  const loadMore = useCallback(() => {
+    if (!loading && hasMore) {
+      const nextPage = page + 1
+      setPage(nextPage)
+      fetchVideos(nextPage, true)
+    }
+  }, [loading, hasMore, page, fetchVideos])
+
+  // Initial load - use a ref to track if we've loaded
+  const initializedRef = useRef(false)
 
   useEffect(() => {
-    fetchVideos()
+    if (!initializedRef.current) {
+      initializedRef.current = true
+      fetchVideos(0, false)
+    }
   }, [fetchVideos])
 
-  return { videos, loading, error, refetch: fetchVideos }
+  const refetch = useCallback(() => {
+    setPage(0)
+    fetchVideos(0, false)
+  }, [fetchVideos])
+
+  return { videos, loading, error, hasMore, loadMore, refetch }
 }
 
 export function useVideo(id: string) {

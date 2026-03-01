@@ -1,5 +1,4 @@
 import { VideoFeed } from '@/components/video/video-feed'
-import { getCurrentWeek, formatWeekLabel } from '@/lib/utils/week-utils'
 import { getSession } from '@/lib/auth/session'
 import { redirect } from 'next/navigation'
 
@@ -12,8 +11,6 @@ export default async function FeedPage() {
     redirect('/login')
   }
 
-  const currentWeek = getCurrentWeek()
-
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
       <div className="mb-8 space-y-1">
@@ -21,7 +18,7 @@ export default async function FeedPage() {
           ✦ Feed de Coreografías
         </h1>
         <p className="text-white/50 text-sm">
-          {formatWeekLabel(currentWeek)} · En curso
+          Descubre las últimas coreografías de la academia
         </p>
       </div>
 

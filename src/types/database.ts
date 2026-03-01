@@ -69,6 +69,7 @@ export interface Comment {
   emojis: string[] | null
   created_at: string
   profiles?: Pick<Profile, 'username' | 'avatar_url'> | null
+  videos?: { id: string; title: string } | null
 }
 
 export interface Reaction {
