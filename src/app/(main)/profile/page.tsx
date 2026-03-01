@@ -4,7 +4,8 @@ import { GlassCard } from '@/components/ui/glass-card'
 import { VideoCard } from '@/components/video/video-card'
 import { createClient } from '@/lib/supabase/server'
 import { ProfileClient } from './profile-client'
-import type { Profile, UserRole } from '@/types/database'
+import { ProfileComments } from './profile-comments'
+import type { Profile, UserRole, Comment } from '@/types/database'
 
 export const dynamic = 'force-dynamic'
 
@@ -34,16 +35,16 @@ export default async function ProfilePage() {
     `
     )
     .eq('user_id', user.id)
-    .order('week_number', { ascending: false })
+    .order('created_at', { ascending: false })
 
   const { data: reactionsReceived } = await supabase
     .from('reactions')
     .select('reaction_type, videos!inner(user_id)')
     .eq('videos.user_id', user.id)
 
-  const { data: myComments } = await supabase
+  const { data: myCommentsData } = await supabase
     .from('comments')
-    .select('id, content, created_at, video_id, videos(id, title)')
+    .select('id, content, created_at, video_id, user_id, videos(id, title)')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
 
@@ -55,6 +56,23 @@ export default async function ProfilePage() {
     role: user.role as UserRole,
     created_at: new Date().toISOString(),
   }
+
+  const myComments: Comment[] = (myCommentsData || []).map(c => {
+    // Handle Supabase joined relation which returns an array
+    const videoArray = c.videos as unknown as [{ id: string; title: string }] | null
+    const videoData = videoArray && Array.isArray(videoArray) ? videoArray[0] : null
+
+    return {
+      id: c.id,
+      video_id: c.video_id,
+      user_id: c.user_id,
+      content: c.content,
+      created_at: c.created_at,
+      emojis: [],
+      profiles: { username: user.username, avatar_url: user.avatar_url },
+      videos: videoData || null
+    }
+  })
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 space-y-8">
@@ -84,41 +102,7 @@ export default async function ProfilePage() {
         )}
       </div>
 
-      <div>
-        <h2 className="text-xl font-black text-white mb-4">💬 Mis Comentarios</h2>
-
-        {!myComments || myComments.length === 0 ? (
-          <GlassCard className="p-8 text-center space-y-2">
-            <p className="text-3xl">💬</p>
-            <p className="text-white/50">Aún no has comentado en ningún video</p>
-          </GlassCard>
-        ) : (
-          <div className="space-y-3">
-            {myComments.map((comment) => {
-              const videoData = comment.videos as { id: string; title: string } | null
-              return (
-                <GlassCard key={comment.id} glow="cyan" className="p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-white/80 text-sm leading-relaxed break-words">
-                        {comment.content}
-                      </p>
-                      {videoData && (
-                        <a
-                          href={`/video/${videoData.id}`}
-                          className="text-pink-400 text-xs hover:text-pink-300 transition-colors mt-1.5 block"
-                        >
-                          En: {videoData.title} →
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                </GlassCard>
-              )
-            })}
-          </div>
-        )}
-      </div>
+      <ProfileComments initialComments={myComments} />
     </div>
   )
 }

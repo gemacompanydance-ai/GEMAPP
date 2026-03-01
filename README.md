@@ -40,13 +40,13 @@ npm run dev
 
 El sistema usa usuarios predefinidos en lugar de Supabase Auth. No hay registro, solo login.
 
-| Usuario  | Contraseña | Rol       |
-|----------|------------|-----------|
-| gema     | gema123    | profesor  |
-| maria    | maria123   | alumno    |
-| sofia    | sofia123   | alumno    |
-| laura    | laura123   | alumno    |
-| carmen   | carmen123  | admin     |
+| Usuario  | Contraseña    | Rol       |
+|----------|---------------|-----------|
+| gema     | GEMAADMIN2003 | admin     |
+| maria    | maria123      | alumno    |
+| sofia    | sofia123      | alumno    |
+| laura    | laura123      | alumno    |
+| carmen   | carmen123     | admin     |
 
 Para añadir más usuarios, edita `src/lib/auth/users.ts`.
 
